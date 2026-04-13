@@ -1,0 +1,73 @@
+services:
+  gateway:
+    build: ./gateway
+    container_name: todo_gateway
+    env_file:
+      - ./gateway/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - user_api
+      - todo_api
+
+  user_api:
+    build: ./users  
+    container_name: todo_user_api
+    env_file:
+      - ./users/.env
+    depends_on:
+      user_db:
+        condition: service_healthy
+
+  user_db:
+    image: postgres:18
+    container_name: todo_user_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - user_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  todo_api:
+    build: ./todos   
+    container_name: todo_todo_api
+    env_file:
+      - ./todos/.env
+    depends_on:
+      todo_db:
+        condition: service_healthy
+      user_api:
+        condition: service_started
+
+  todo_db:
+    image: postgres:18
+    container_name: todo_todo_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: todo_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - todo_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d todo_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  user_postgres_data:
+  todo_postgres_data:
