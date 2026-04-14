@@ -6,3 +6,8 @@ class TaskStatus(StrEnum):
     REVIEW = "review"
     DONE = "done"
     CANCELLED = "cancelled"
+
+class TaskActions(StrEnum):
+    CREATE = "create"
+    CHANGED = "changed"
+    DELETED = "deleted"

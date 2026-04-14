@@ -1,4 +1,5 @@
 from uuid import UUID
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.enums import SystemRole
 from app.models.users import User
@@ -9,18 +10,12 @@ class UserRepository:
         self.db = db
 
     def get_by_user_id(self, user_id: UUID):
-        return (
-            self.db.query(User)
-            .filter(User.id == user_id)
-            .first()
-        )
+        stmt = select(User).where(User.id == user_id)
+        return self.db.scalar(stmt)
     
     def get_by_email(self, email: str):
-        return (
-            self.db.query(User)
-            .filter(User.email == email)
-            .first()
-        )
+        stmt = select(User).where(User.email == email)
+        return self.db.scalar(stmt)
     
     def create(self, username: str, email: str, password: str)-> User:
         user = User(username=username, email=email, password=password)

@@ -11,7 +11,7 @@ from app.repositories.idempotency_repository import IdempotencyRepository
 
 
 class IdempotencyService:
-    def build_request_hash(payload: Any) -> str:
+    def hash_request(payload: Any) -> str:
         encoded_payload = jsonable_encoder(payload)
         canonical = json.dumps(encoded_payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -24,7 +24,7 @@ class IdempotencyService:
         payload: Any,
     ):
         idempotency_repo = IdempotencyRepository(db)
-        request_hash = IdempotencyService.build_request_hash(payload)
+        request_hash = IdempotencyService.hash_request(payload)
 
         existing_key = idempotency_repo.get_by_user_endpoint_and_key(
             user_id,

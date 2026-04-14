@@ -13,6 +13,7 @@ from argon2 import PasswordHasher
 from app.repositories.membership_repository import MemebershipRepository
 from app.repositories.team_repository import TeamRepository
 from app.repositories.user_repository import UserRepository
+from app.core.permissions import TEAM_ROLE_PERMISSIONS, TeamPermission
 ph = PasswordHasher()
 
 class TeamService:
@@ -81,22 +82,6 @@ class TeamService:
             raise HTTPException(status_code=404, detail="User not added to team")
         
         return db_team_membership.team_role == TeamRole.PM
-
-
-    @staticmethod
-    def get_role_in_team(db: Session, access_token: str, team_id: UUID) -> RoleResponse:
-        membership_repo = MemebershipRepository(db)
-
-        db_user = UserService.get_current_user(db, access_token)
-        membership = membership_repo.get_by_user_id_and_team_id(db_user.id, team_id)
-
-        if membership is None:
-            raise HTTPException(status_code=403, detail="User is not in this team")
-
-        return RoleResponse(
-            user_id=db_user.id,
-            role=membership.team_role)
-    
 
     @staticmethod
     def is_user_in_team(db: Session, team_id: UUID, access_token: str) -> bool:
@@ -168,3 +153,21 @@ class TeamService:
         teams = team_repo.get_all()
 
         return [TeamService._build_team_response(db_team) for db_team in teams]
+
+    @staticmethod
+    def get_role_in_team(db: Session, access_token: str, team_id: UUID, permission: TeamPermission) -> RoleResponse:
+        membership_repo = MemebershipRepository(db)
+
+        db_user = UserService.get_current_user(db, access_token)
+        membership = membership_repo.get_by_user_id_and_team_id(db_user.id, team_id)
+
+        if membership is None:
+            raise HTTPException(status_code=403, detail="User is not in this team")
+        is_allowed = permission in TEAM_ROLE_PERMISSIONS.get(membership.team_role, set())
+
+        return RoleResponse(
+            user_id=db_user.id,
+            role=membership.team_role,
+            is_allowed=is_allowed
+            )
+    

@@ -1,24 +1,23 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.db.database import get_db
-from app.dependencies.auth import CurrentUserTeamRole, get_current_user_team_role
-from app.schemas.task import TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
+from app.dependencies.auth import get_current_user_team_role, require_team_permission
+from app.schemas.task import PaginatedTaskResponse, TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
 from app.services.task_service import TaskService
+from app.core.permissions import TeamPermission
 
 router = APIRouter()
 
 @router.post("/{team_id}", response_model=TaskResponse)
-def create_task(
+async def create_task(
     team_id: UUID,
     task: TaskCreate,
     idempotency_key: UUID = Header(..., alias="Idempotency-Key"),
-    current_user: CurrentUserTeamRole = Depends(get_current_user_team_role),
     db: Session = Depends(get_db),
+    current_user=Depends(require_team_permission(TeamPermission.CREATE_TASK)),
 ):
-    if current_user.role != "pm":
-        raise HTTPException(status_code=403, detail="PM access required")
 
     return TaskService.create_task(
         db,
@@ -27,41 +26,73 @@ def create_task(
         current_user.user_id,
         idempotency_key,
     )
-@router.get("/{team_id}/my", response_model=list[TaskResponse])
-def get_users_tasks(
+
+@router.get("/{team_id}/my", response_model=PaginatedTaskResponse)
+async def get_users_tasks(
     team_id: UUID,
-    current_user: CurrentUserTeamRole = Depends(get_current_user_team_role),
+    status: str | None = Query(None),
+    deadline: str | None = Query(None),
+    sort: str | None = Query(None),
+    direction: str | None = Query("asc"), 
+    limit: int = Query(10, ge=1, le=100),
+    page: int = Query(1, ge=1),
     db: Session = Depends(get_db),
+    current_user=Depends(require_team_permission(TeamPermission.VIEW_USER_TASKS)),
 ):
     
-    return TaskService.get_user_tasks(db, team_id, current_user.user_id)
+    return TaskService.get_user_tasks(
+        db=db, 
+        user_id=current_user.user_id,
+        team_id=team_id, 
+        status=status,
+        deadline=deadline,
+        direction=direction,
+        sort=sort,
+        limit=limit,
+        page=page,
+        )
 
-@router.get("/{team_id}", response_model=list[TaskResponse])
-def get_all_tasks(
+@router.get("/{team_id}", response_model=PaginatedTaskResponse)
+async def get_all_tasks(
     team_id: UUID,
-    current_user: CurrentUserTeamRole = Depends(get_current_user_team_role),
+    status: str | None = Query(None),
+    deadline: str | None = Query(None),
+    sort: str | None = Query(None),
+    direction: str | None = Query("asc"), 
+    limit: int = Query(10, ge=1, le=100),
+    page: int = Query(1, ge=1),
     db: Session = Depends(get_db),
+    current_user=Depends(require_team_permission(TeamPermission.VIEW_ALL_TASKS)),
 ):
-    if current_user.role != "pm":
-        raise HTTPException(status_code=403, detail="PM access required")
-
-    return TaskService.get_all_team_tasks(db, team_id)
+        
+    return TaskService.get_all_team_tasks(
+        db=db, 
+        team_id=team_id, 
+        status=status,
+        deadline=deadline,
+        direction=direction,
+        sort=sort,
+        limit=limit,
+        page=page,
+        )
 
 @router.patch("/{team_id}", response_model=TaskResponse)
-def change_task_status(
+async def change_task_status(
     team_id: UUID,
     task: TaskChangeStatus,
     idempotency_key: UUID = Header(..., alias="Idempotency-Key"),
-    current_user: CurrentUserTeamRole = Depends(get_current_user_team_role),
     db: Session = Depends(get_db),
+    current_user=Depends(require_team_permission(TeamPermission.CHANGE_TASK_STATUS)),
 ):
+       
     return TaskService.change_task_status(db, team_id, current_user.user_id, task, idempotency_key)
 
 @router.delete("/{team_id}/task")
-def remove_task(
+async def remove_task(
     team_id: UUID,
     task: TaskDelete,
-    current_user: CurrentUserTeamRole = Depends(get_current_user_team_role),
     db: Session = Depends(get_db),
+    current_user=Depends(require_team_permission(TeamPermission.DELETE_TASK)),
 ):
+    
     return TaskService.remove_task(db, current_user.user_id, team_id, task.task_id)

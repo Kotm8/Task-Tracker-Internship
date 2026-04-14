@@ -6,6 +6,7 @@ from app.db.database import get_db
 from app.schemas.team import AddUserToTeam, ChangeUserTeamRole, RoleResponse, TeamCreate, TeamResponse, TeamMembershipResponse, TeamWithRoleResponse
 from app.services.team_service import TeamService
 from app.services.user_service import UserService
+from app.core.permissions import TeamPermission
 
 router = APIRouter()
 
@@ -109,12 +110,13 @@ def get_all_teams(
         return TeamService.get_all_teams(db, access_token)
     raise HTTPException(status_code=403, detail="Not permitted")
 
-@router.get("/{team_id}/getrole", response_model=RoleResponse)
+@router.get("/{team_id}/getrole/{action}", response_model=RoleResponse)
 def get_role_in_team(
     team_id: UUID,
+    action: TeamPermission,
     access_token: str = Cookie(None), 
     db: Session = Depends(get_db)
     ):
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return TeamService.get_role_in_team(db, access_token, team_id)
+    return TeamService.get_role_in_team(db, access_token, team_id, action)

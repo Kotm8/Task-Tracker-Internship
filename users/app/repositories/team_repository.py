@@ -1,4 +1,5 @@
 from uuid import UUID
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.enums import SystemRole
 from app.models.teams import Team, TeamMembership
@@ -10,32 +11,24 @@ class TeamRepository:
         self.db = db
 
     def get_by_name(self, name: str):
-        return (
-            self.db.query(Team)
-            .filter(Team.name == name)
-            .first()
-        )
+        stmt = select(Team).where(Team.name == name)
+        return self.db.scalar(stmt)
     
     def get_by_team_id(self, team_id: UUID):
-        return (
-            self.db.query(Team)
-            .filter(Team.id == team_id)
-            .first()
-        )
+        stmt = select(Team).where(Team.id == team_id)
+        return self.db.scalar(stmt)
     
     def get_all_teams_with_user(self, user_id: UUID):
-        return (
-            self.db.query(Team, TeamMembership.team_role)
+        stmt = (
+            select(Team, TeamMembership.team_role)
             .join(TeamMembership, TeamMembership.team_id == Team.id)
-            .filter(TeamMembership.user_id == user_id)
-            .all()
+            .where(TeamMembership.user_id == user_id)
         )
+        return self.db.execute(stmt).all()
     
     def get_all(self):
-        return (
-            self.db.query(Team)
-            .all()
-        )
+        stmt = select(Team)
+        return self.db.scalars(stmt).all()
     
     def create(self, name: str)-> Team:
         db_team = Team(name=name)

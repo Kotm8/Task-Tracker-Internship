@@ -7,6 +7,8 @@ from pydantic import BaseModel, ValidationError
 import os 
 from dotenv import load_dotenv
 
+from app.core.permissions import TeamPermission
+
 load_dotenv()
 
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
@@ -15,34 +17,30 @@ USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
 class CurrentUserTeamRole(BaseModel):
     user_id: UUID
     role: Literal["member", "pm", "tl"]
+    is_allowed: bool
 
 
-async def get_current_user_id(access_token: str = Cookie(None)):
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+def require_team_permission(action: TeamPermission):
+    async def dependency(
+        team_id: UUID,
+        access_token: str | None = Cookie(None),
+    ):
+        current_user = await get_current_user_team_role(
+            team_id=str(team_id),
+            action=action,
+            access_token=access_token,
+        )
 
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{USER_SERVICE_URL}/api/v1/users/whoami",
-                cookies={"access_token": access_token},
-                timeout=5.0
-            )
+        if not current_user.is_allowed:
+            raise HTTPException(status_code=403, detail="insufficient permissions")
 
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        return current_user
 
-        user = response.json()
-        user_id = user.get("id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid user payload")
-        return user_id
+    return dependency
 
-    except httpx.RequestError:
-        raise HTTPException(status_code=503, detail="User service unavailable")
-    
 async def get_current_user_team_role(
     team_id: str,
+    action: TeamPermission,
     access_token: str = Cookie(None),
 ) -> CurrentUserTeamRole:
     if not access_token:
@@ -51,7 +49,7 @@ async def get_current_user_team_role(
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{USER_SERVICE_URL}/api/v1/team/{team_id}/getrole",
+                f"{USER_SERVICE_URL}/api/v1/team/{team_id}/getrole/{action}",
                 cookies={"access_token": access_token},
                 timeout=5.0,
             )

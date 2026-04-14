@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 from pydantic import BaseModel
 from app.core.enums import TaskStatus
@@ -35,3 +36,9 @@ class TaskResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PaginatedTaskResponse(BaseModel):
+    items: List[TaskResponse]
+    page: int
+    limit: int
+    total: int

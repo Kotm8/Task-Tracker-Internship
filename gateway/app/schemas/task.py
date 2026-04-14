@@ -33,3 +33,10 @@ class TaskResponse(BaseModel):
     deadline: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class PaginatedTaskResponse(BaseModel):
+    items: list[TaskResponse]
+    page: int
+    limit: int
+    total: int

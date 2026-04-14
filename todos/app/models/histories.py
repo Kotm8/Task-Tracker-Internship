@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, DateTime, Enum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
+
+from app.core.enums import TaskActions, TaskStatus
 from app.db.database import Base
 import uuid
 from datetime import datetime, timezone
@@ -12,8 +14,8 @@ class TaskStatusHistory(Base):
 
     task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=False)
 
-    old_status = Column(String, nullable=True)
-    new_status = Column(String, nullable=False)
+    old_status = Column(Enum(TaskStatus, name="task_status_enum"), nullable=True)
+    new_status = Column(Enum(TaskStatus, name="task_status_enum"), nullable=False)
 
     changed_by = Column(UUID(as_uuid=True), nullable=False)
 
@@ -27,7 +29,7 @@ class TaskHistory(Base):
 
     task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=False)
 
-    action = Column(String, nullable=False)  
+    action = Column(Enum(TaskActions, name="task_actions_enum"), nullable=False)
 
     changed_by = Column(UUID(as_uuid=True), nullable=False)
 

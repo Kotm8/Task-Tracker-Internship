@@ -1,14 +1,14 @@
 from uuid import UUID
-
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-
-from app.core.enums import TaskStatus
+from datetime import datetime, timedelta, timezone
+from app.core.enums import TaskActions, TaskStatus
 from app.models.tasks import Task
 from app.repositories.idempotency_repository import IdempotencyRepository
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import TaskChangeStatus, TaskCreate
 from app.services.idempotency_service import IdempotencyService
+from app.repositories.history_repository import HistoryRepository
 
 ALLOWED_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
     TaskStatus.TODO: {TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED},
@@ -32,27 +32,66 @@ class TaskService:
         )
 
         task_repo = TaskRepository(db)
+        history_repo = HistoryRepository(db)
+        db_task = None
         try:
             db_task = task_repo.create(task, team_id, created_by)
+            if db_task is not None:
+                history_repo.save_task_action(db_task.id, TaskActions.CREATE, created_by, True, datetime.now(timezone.utc))
         except Exception:
-            idempotency_repo = IdempotencyRepository(db)
-            idempotency_repo.delete(idempotency_record)
             raise
-
-        #TODO later save history
+        
         return db_task
     
-    def get_user_tasks(db: Session, team_id: UUID, user_id: UUID):
+    def get_user_tasks(
+        db: Session,
+        user_id: UUID,
+        team_id: UUID, 
+        status=None,
+        deadline=None,
+        sort=None,
+        direction="asc",
+        limit=10,
+        page=1,
+    ):
         task_repo = TaskRepository(db)
 
-        return task_repo.get_all_by_user_id_and_team_id(user_id, team_id)
+        return task_repo.get_user_tasks(
+            user_id=user_id,
+            team_id=team_id, 
+            status=status,
+            deadline=deadline,
+            sort=sort,
+            direction=direction,
+            limit=limit,
+            page=page
+            )
 
-    def get_all_team_tasks(db: Session, team_id: UUID):
+    def get_all_team_tasks(
+        db: Session,
+        team_id: UUID | None = None,
+        status=None,
+        deadline=None,
+        sort=None,
+        direction="asc",
+        limit=10,
+        page=1,
+    ):
         task_repo = TaskRepository(db)
-        return task_repo.get_all_by_team_id(team_id)
+        return task_repo.get_user_tasks(
+            team_id=team_id, 
+            status=status,
+            deadline=deadline,
+            sort=sort,
+            direction=direction,
+            limit=limit,
+            page=page
+            )
 
     def change_task_status(db: Session, team_id: UUID, user_id: UUID, task: TaskChangeStatus, idempotency_key: UUID):
         task_repo = TaskRepository(db)
+        history_repo = HistoryRepository(db)
+        
         idempotency_record = IdempotencyService.validate_request(
             db,
             user_id,
@@ -66,14 +105,28 @@ class TaskService:
         
         db_task = task_repo.get_by_task_id_and_user_id_and_team_id(user_id, team_id, task.task_id)
         if not db_task:
-            IdempotencyRepository(db).delete(idempotency_record)
             raise HTTPException(status_code=403, detail="Task not found or doesnt belong to user")
         TaskService.validate_status_transition(db_task.status, task.status)
+        task_action = None 
+        task_status = None
 
         try:
+            task_action = history_repo.save_task_action(db_task.id, TaskActions.CHANGED, user_id, True, datetime.now(timezone.utc))
+            task_status = history_repo.save_status_change(task.task_id, db_task.status, task.status, user_id, datetime.now(timezone.utc))
             return task_repo.update_status(db_task, task.status)
+            
         except Exception:
-            IdempotencyRepository(db).delete(idempotency_record)
+            if task_action is not None:
+                try:
+                    history_repo.delete_task_action(task_action)
+                except Exception:
+                    pass
+            if task_status is not None:
+                try:
+                    history_repo.delete_task_status_change(task_status)
+                except Exception:
+                    pass
+    
             raise
 
     def validate_status_transition(current: TaskStatus, new: TaskStatus):
@@ -84,9 +137,11 @@ class TaskService:
             raise HTTPException(status_code=400, detail=f"Invalid transition: {current} -> {new}")
         
     def remove_task(db: Session, user_id: UUID, team_id: UUID, task_id: UUID):
+        history_repo = HistoryRepository(db)
         task_repo = TaskRepository(db)
         db_task = task_repo.get_by_task_id_and_user_id_and_team_id(user_id, team_id, task_id)
         if not db_task:
             raise HTTPException(status_code=403, detail="Task not found or doesnt belong to user")
         task_repo.delete_Task(db_task)
+        history_repo.save_task_action(db_task.id, TaskActions.DELETED, user_id, True, datetime.now(timezone.utc))
         
