@@ -5,5 +5,5 @@
 - [docker](https://www.docker.com/products/docker-desktop/)
 - [postgresql](https://www.postgresql.org/download/)
 #
-- фильтры задач
+- фильтры задач +
 - permission mapping +

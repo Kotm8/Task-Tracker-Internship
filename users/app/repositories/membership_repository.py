@@ -1,4 +1,5 @@
 from uuid import UUID
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.enums import SystemRole, TeamRole
 from app.models.teams import Team, TeamMembership
@@ -10,26 +11,25 @@ class MemebershipRepository:
         self.db = db
 
     def get_by_user_id_and_team_id(self, user_id: UUID, team_id: UUID) -> TeamMembership:
-        return (
-            self.db.query(TeamMembership)
-            .filter(TeamMembership.user_id == user_id)
-            .filter(TeamMembership.team_id == team_id)
-            .first()
+        stmt = (
+            select(TeamMembership)
+            .where(TeamMembership.user_id == user_id)
+            .where(TeamMembership.team_id == team_id)
         )
+        return self.db.scalar(stmt)
     
     def get_by_team_id(self, team_id: UUID):
-        return (
-            self.db.query(Team)
-            .filter(Team.id == team_id)
-            .first()
-        )
+        stmt = select(Team).where(Team.id == team_id)
+        return self.db.scalar(stmt)
+
     def get_all_by_team_id(self, team_id: UUID):
-        return(
-            self.db.query(User, TeamMembership.team_role)
+        stmt = (
+            select(User, TeamMembership.team_role)
             .join(TeamMembership, TeamMembership.user_id == User.id)
-            .filter(TeamMembership.team_id == team_id)
-            .all()
+            .where(TeamMembership.team_id == team_id)
         )
+        return self.db.execute(stmt).all()
+
     def create(self, user_id: UUID, team_id: UUID, team_role: TeamRole) -> TeamMembership:
         db_team_membership = TeamMembership(
             user_id=user_id,

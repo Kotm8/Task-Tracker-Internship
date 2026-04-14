@@ -44,14 +44,50 @@ class TaskService:
         
         return db_task
     
-    def get_user_tasks(db: Session, team_id: UUID, user_id: UUID):
+    def get_user_tasks(
+        db: Session,
+        user_id: UUID,
+        team_id: UUID, 
+        status=None,
+        deadline=None,
+        sort=None,
+        direction="asc",
+        limit=10,
+        page=1,
+    ):
         task_repo = TaskRepository(db)
 
-        return task_repo.get_all_by_user_id_and_team_id(user_id, team_id)
+        return task_repo.get_user_tasks(
+            user_id=user_id,
+            team_id=team_id, 
+            status=status,
+            deadline=deadline,
+            sort=sort,
+            direction=direction,
+            limit=limit,
+            page=page
+            )
 
-    def get_all_team_tasks(db: Session, team_id: UUID):
+    def get_all_team_tasks(
+        db: Session,
+        team_id: UUID | None = None,
+        status=None,
+        deadline=None,
+        sort=None,
+        direction="asc",
+        limit=10,
+        page=1,
+    ):
         task_repo = TaskRepository(db)
-        return task_repo.get_all_by_team_id(team_id)
+        return task_repo.get_user_tasks(
+            team_id=team_id, 
+            status=status,
+            deadline=deadline,
+            sort=sort,
+            direction=direction,
+            limit=limit,
+            page=page
+            )
 
     def change_task_status(db: Session, team_id: UUID, user_id: UUID, task: TaskChangeStatus, idempotency_key: UUID):
         task_repo = TaskRepository(db)
