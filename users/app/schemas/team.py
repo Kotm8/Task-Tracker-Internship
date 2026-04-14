@@ -35,3 +35,4 @@ class TeamMembershipResponse(BaseModel):
 class RoleResponse(BaseModel):
     user_id: UUID
     role: TeamRole
+    is_allowed: bool

@@ -7,6 +7,8 @@ from pydantic import BaseModel, ValidationError
 import os 
 from dotenv import load_dotenv
 
+from app.core.permissions import TeamPermission
+
 load_dotenv()
 
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
@@ -15,6 +17,7 @@ USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
 class CurrentUserTeamRole(BaseModel):
     user_id: UUID
     role: Literal["member", "pm", "tl"]
+    is_allowed: bool
 
 
 async def get_current_user_id(access_token: str = Cookie(None)):
@@ -43,6 +46,7 @@ async def get_current_user_id(access_token: str = Cookie(None)):
     
 async def get_current_user_team_role(
     team_id: str,
+    action: TeamPermission,
     access_token: str = Cookie(None),
 ) -> CurrentUserTeamRole:
     if not access_token:
@@ -51,7 +55,7 @@ async def get_current_user_team_role(
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{USER_SERVICE_URL}/api/v1/team/{team_id}/getrole",
+                f"{USER_SERVICE_URL}/api/v1/team/{team_id}/getrole/{action}",
                 cookies={"access_token": access_token},
                 timeout=5.0,
             )
