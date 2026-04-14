@@ -33,13 +33,12 @@ class TaskService:
 
         task_repo = TaskRepository(db)
         history_repo = HistoryRepository(db)
+        db_task = None
         try:
             db_task = task_repo.create(task, team_id, created_by)
-            history_repo.save_task_action(db_task.id, TaskActions.CREATE, created_by, True, datetime.now(timezone.utc))
+            if db_task is not None:
+                history_repo.save_task_action(db_task.id, TaskActions.CREATE, created_by, True, datetime.now(timezone.utc))
         except Exception:
-            idempotency_repo = IdempotencyRepository(db)
-            idempotency_repo.delete(idempotency_record)
-            history_repo.save_task_action(db_task.id, TaskActions.CREATE, created_by, False, datetime.now(timezone.utc))
             raise
         
         return db_task
@@ -106,17 +105,28 @@ class TaskService:
         
         db_task = task_repo.get_by_task_id_and_user_id_and_team_id(user_id, team_id, task.task_id)
         if not db_task:
-            IdempotencyRepository(db).delete(idempotency_record)
             raise HTTPException(status_code=403, detail="Task not found or doesnt belong to user")
         TaskService.validate_status_transition(db_task.status, task.status)
+        task_action = None 
+        task_status = None
 
         try:
-            history_repo.save_task_action(db_task.id, TaskActions.CHANGED, user_id, True, datetime.now(timezone.utc))
-            history_repo.save_status_change(task.task_id, db_task.status, task.status, user_id, datetime.now(timezone.utc))
+            task_action = history_repo.save_task_action(db_task.id, TaskActions.CHANGED, user_id, True, datetime.now(timezone.utc))
+            task_status = history_repo.save_status_change(task.task_id, db_task.status, task.status, user_id, datetime.now(timezone.utc))
             return task_repo.update_status(db_task, task.status)
             
         except Exception:
-            IdempotencyRepository(db).delete(idempotency_record)
+            if task_action is not None:
+                try:
+                    history_repo.delete_task_action(task_action)
+                except Exception:
+                    pass
+            if task_status is not None:
+                try:
+                    history_repo.delete_task_status_change(task_status)
+                except Exception:
+                    pass
+    
             raise
 
     def validate_status_transition(current: TaskStatus, new: TaskStatus):
