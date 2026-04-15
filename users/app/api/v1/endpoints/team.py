@@ -34,7 +34,7 @@ def add_user_to_team(
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    UserService.require_admin(db, access_token)
+    UserService.is_user_admin(db, access_token)
     return TeamService.add_user_to_team(team_id, user, db)
 
 @router.patch("/{team_id}", response_model=TeamMembershipResponse)

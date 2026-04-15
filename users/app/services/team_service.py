@@ -164,7 +164,8 @@ class TeamService:
         if membership is None:
             raise HTTPException(status_code=403, detail="User is not in this team")
         is_allowed = permission in TEAM_ROLE_PERMISSIONS.get(membership.team_role, set())
-
+        #if db_user.system_role == SystemRole.ADMIN:
+        #    is_allowed = True
         return RoleResponse(
             user_id=db_user.id,
             role=membership.team_role,

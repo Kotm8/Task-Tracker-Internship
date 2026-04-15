@@ -139,9 +139,11 @@ class TaskService:
     def remove_task(db: Session, user_id: UUID, team_id: UUID, task_id: UUID):
         history_repo = HistoryRepository(db)
         task_repo = TaskRepository(db)
-        db_task = task_repo.get_by_task_id_and_user_id_and_team_id(user_id, team_id, task_id)
+        db_task = task_repo.get_by_task_id_and_team_id(team_id, task_id)
         if not db_task:
-            raise HTTPException(status_code=403, detail="Task not found or doesnt belong to user")
+            raise HTTPException(status_code=404, detail="Task not found in this team")
+        history_repo.delete_task_status_changes_by_task_id(task_id)
+        history_repo.delete_task_actions_by_task_id(task_id)
         task_repo.delete_Task(db_task)
-        history_repo.save_task_action(db_task.id, TaskActions.DELETED, user_id, True, datetime.now(timezone.utc))
+        return db_task
         

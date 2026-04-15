@@ -1,4 +1,14 @@
 services:
+  frontend:
+    build: ./frontend
+    container_name: todo_frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+
   gateway:
     build: ./gateway
     container_name: todo_gateway

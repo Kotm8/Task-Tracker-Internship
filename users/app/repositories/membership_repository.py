@@ -1,5 +1,5 @@
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 from app.core.enums import SystemRole, TeamRole
 from app.models.teams import Team, TeamMembership
@@ -23,10 +23,18 @@ class MemebershipRepository:
         return self.db.scalar(stmt)
 
     def get_all_by_team_id(self, team_id: UUID):
+        role_order = case(
+            (TeamMembership.team_role == TeamRole.PM, 1),
+            (TeamMembership.team_role == TeamRole.TL, 2),
+            (TeamMembership.team_role == TeamRole.MEMBER, 3),
+            else_=4,
+        )
+
         stmt = (
             select(User, TeamMembership.team_role)
             .join(TeamMembership, TeamMembership.user_id == User.id)
             .where(TeamMembership.team_id == team_id)
+            .order_by(role_order)
         )
         return self.db.execute(stmt).all()
 
