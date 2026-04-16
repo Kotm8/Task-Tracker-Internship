@@ -107,7 +107,7 @@ def get_all_teams(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     if UserService.is_user_admin(db, access_token):
-        return TeamService.get_all_teams(db, access_token)
+        return TeamService.get_all_teams(db)
     raise HTTPException(status_code=403, detail="Not permitted")
 
 @router.get("/{team_id}/getrole/{action}", response_model=RoleResponse)

@@ -12,6 +12,10 @@ class JWTRepository:
         stmt = select(AccessToken).where(AccessToken.user_id == user_id)
         return self.db.scalar(stmt)
 
+    def get_all_access_tokens_by_userid(self, user_id: UUID) -> list[AccessToken]:
+        stmt = select(AccessToken).where(AccessToken.user_id == user_id)
+        return list(self.db.scalars(stmt).all())
+
     def get_access_token_by_hash(self, token_hash: str) -> AccessToken:
         stmt = select(AccessToken).where(AccessToken.token_hash == token_hash)
         return self.db.scalar(stmt)
@@ -19,6 +23,10 @@ class JWTRepository:
     def get_refresh_token_by_userid(self, user_id: UUID) -> RefreshToken:
         stmt = select(RefreshToken).where(RefreshToken.user_id == user_id)
         return self.db.scalar(stmt)
+
+    def get_all_refresh_tokens_by_userid(self, user_id: UUID) -> list[RefreshToken]:
+        stmt = select(RefreshToken).where(RefreshToken.user_id == user_id)
+        return list(self.db.scalars(stmt).all())
 
     def get_refresh_token_by_hash(self, token_hash: str) -> RefreshToken:
         stmt = select(RefreshToken).where(RefreshToken.token_hash == token_hash)
