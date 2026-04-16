@@ -1,9 +1,11 @@
 from uuid import UUID
 from fastapi import HTTPException
+from redis.exceptions import RedisError
 from app.core.enums import SystemRole
 from app.schemas.user import UserRegister, UserResponse
 from sqlalchemy.orm import Session
 from app.models.users import User
+from app.core.redis_client import redis_manager
 from app.services.jwt_service import JWTService
 from argon2 import PasswordHasher
 from app.repositories.user_repository import UserRepository
@@ -14,9 +16,26 @@ class UserService:
     @staticmethod
     def get_current_user(db: Session, access_token: str) -> User:
         user_repo = UserRepository(db)
+        payload = JWTService.decode_access_token(access_token)
+        user_id = payload.get("sub")
+        jti = payload.get("jti")
+        redis = redis_manager.get_client()
 
-        user_id = JWTService.validate_access_token(db, access_token)
-        db_user = user_repo.get_by_user_id(user_id)
+        if redis is not None and jti:
+            try:
+                cached_user_id = redis.get(f"user_todo:access_jti:{jti}")
+            except RedisError as e:
+                redis_manager.disable(e)
+                cached_user_id = None
+        else:
+            cached_user_id = None
+
+        if cached_user_id is None:
+            user_id = JWTService.validate_access_token(db, access_token)
+        else:
+            user_id = cached_user_id
+
+        db_user = user_repo.get_by_user_id(UUID(str(user_id)))
 
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")

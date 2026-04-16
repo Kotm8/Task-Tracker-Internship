@@ -56,7 +56,7 @@ class AuthService:
             raise HTTPException(status_code=404, detail="User not found")
         
         if access_token:
-            JWTService.revoke_access_token(db, access_token)
+            JWTService.revoke_access_token(db, access_token, ignore_expired=True)
         JWTService.revoke_refresh_token(db, refresh_token)
 
         db_access_token = JWTService.create_access_token(data={"sub": str(db_user.id)})

@@ -73,6 +73,14 @@ class TaskRepository:
         )
         return self.db.scalar(stmt)
 
+    def get_by_task_id_and_team_id(self, team_id: UUID, task_id: UUID):
+        stmt = (
+            select(Task)
+            .where(Task.team_id == team_id)
+            .where(Task.id == task_id)
+        )
+        return self.db.scalar(stmt)
+
     def create(self, task: TaskCreate, team_id: UUID, created_by: UUID) -> Task:
         db_task = Task(
             team_id=team_id,

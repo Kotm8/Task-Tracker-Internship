@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, delete
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.core.enums import TaskActions, TaskStatus
@@ -42,4 +42,12 @@ class HistoryRepository:
         
     def delete_task_status_change(self, status_history: TaskStatusHistory):
         self.db.delete(status_history)
+        self.db.commit()
+
+    def delete_task_actions_by_task_id(self, task_id: UUID):
+        self.db.execute(delete(TaskHistory).where(TaskHistory.task_id == task_id))
+        self.db.commit()
+
+    def delete_task_status_changes_by_task_id(self, task_id: UUID):
+        self.db.execute(delete(TaskStatusHistory).where(TaskStatusHistory.task_id == task_id))
         self.db.commit()

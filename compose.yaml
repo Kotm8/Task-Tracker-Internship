@@ -1,20 +1,59 @@
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: todo_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - gateway
+
+  redis:
+    image: redis:7-alpine
+    container_name: todo_redis
+    restart: unless-stopped
+    env_file:
+      - ./users/.env
+    command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    container_name: todo_frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - gateway
+
   gateway:
     build: ./gateway
     container_name: todo_gateway
     env_file:
       - ./gateway/.env
-    ports:
-      - "8000:8000"
     depends_on:
       - user_api
       - todo_api
 
   user_api:
-    build: ./users  
+    build: ./users
     container_name: todo_user_api
     env_file:
       - ./users/.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     depends_on:
       user_db:
         condition: service_healthy
@@ -39,16 +78,18 @@ services:
       start_period: 5s
 
   todo_api:
-    build: ./todos   
+    build: ./todos
     container_name: todo_todo_api
     env_file:
       - ./todos/.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     depends_on:
       todo_db:
         condition: service_healthy
       user_api:
         condition: service_started
-
   todo_db:
     image: postgres:18
     container_name: todo_todo_db
@@ -69,5 +110,6 @@ services:
       start_period: 5s
 
 volumes:
+  redis_data:
   user_postgres_data:
   todo_postgres_data:
