@@ -27,10 +27,9 @@ class IdempotencyRepository:
             request_hash=request_hash,
         )
         self.db.add(db_idempotency_key)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_idempotency_key)
         return db_idempotency_key
 
     def delete(self, idempotency_key: IdempotencyKey):
         self.db.delete(idempotency_key)
-        self.db.commit()

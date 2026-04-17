@@ -30,7 +30,7 @@ class AuthService:
     @staticmethod
     def login_user(db: Session, user: UserLogin):
         user_repo = UserRepository(db)
-        db_user = user_repo.get_by_email(user.email)
+        db_user = user_repo.get_one(email=user.email)
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
         try:
@@ -50,7 +50,7 @@ class AuthService:
         user_repo = UserRepository(db)
         user_id = JWTService.validate_refresh_token(db, refresh_token)
         
-        db_user = user_repo.get_by_user_id(user_id)
+        db_user = user_repo.get_one(user_id=user_id)
         
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -79,7 +79,7 @@ class AuthService:
         user_repo = UserRepository(db)
         user_id  = JWTService.validate_refresh_token(db, refresh_token)
         
-        db_user = user_repo.get_by_user_id(user_id)
+        db_user = user_repo.get_one(user_id=user_id)
         if not db_user:
             return 
 

@@ -10,12 +10,21 @@ class TeamRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_name(self, name: str):
-        stmt = select(Team).where(Team.name == name)
-        return self.db.scalar(stmt)
-    
-    def get_by_team_id(self, team_id: UUID):
-        stmt = select(Team).where(Team.id == team_id)
+    def get_one(
+        self,
+        *,
+        team_id: UUID | None = None,
+        name: str | None = None,
+    ):
+        stmt = select(Team)
+
+        if team_id is not None:
+            stmt = stmt.where(Team.id == team_id)
+        elif name is not None:
+            stmt = stmt.where(Team.name == name)
+        else:
+            raise ValueError("No team_id or name")
+
         return self.db.scalar(stmt)
     
     def get_all_teams_with_user(self, user_id: UUID):

@@ -48,7 +48,7 @@ class TeamService:
     @staticmethod
     def create_team(team: TeamCreate, db: Session):
         team_repo = TeamRepository(db)
-        db_team = team_repo.get_by_name(team.name)
+        db_team = team_repo.get_one(name=team.name)
         if db_team:
             raise HTTPException(status_code=409, detail="Team name already used")
 
@@ -60,15 +60,15 @@ class TeamService:
         team_repo = TeamRepository(db)
         user_repo = UserRepository(db)
         membership_repo = MemebershipRepository(db)
-        db_team = team_repo.get_by_team_id(team_id)
+        db_team = team_repo.get_one(team_id=team_id)
         if not db_team:
             raise HTTPException(status_code=404, detail="Team doesn't exist")
 
-        db_user = user_repo.get_by_email(user.email)
+        db_user = user_repo.get_one(email=user.email)
         if not db_user:
             raise HTTPException(status_code=404, detail="User doesn't exist")
 
-        db_team_membership = membership_repo.get_by_user_id_and_team_id(db_user.id, db_team.id)
+        db_team_membership = membership_repo.get_one(user_id=db_user.id, team_id=db_team.id)
         if db_team_membership:
             raise HTTPException(status_code=409, detail="User already added to team")
     
@@ -97,7 +97,7 @@ class TeamService:
         membership_repo = MemebershipRepository(db)
         db_user = UserService.get_current_user(db, access_token)
 
-        db_team_membership = membership_repo.get_by_user_id_and_team_id(db_user.id, team_id)
+        db_team_membership = membership_repo.get_one(user_id=db_user.id, team_id=team_id)
         if not db_team_membership:
             raise HTTPException(status_code=404, detail="User not added to team")
         
@@ -111,14 +111,14 @@ class TeamService:
 
         if db_user.system_role == SystemRole.ADMIN:
             return True
-        return membership_repo.get_by_user_id_and_team_id(db_user.id, team_id) is not None
+        return membership_repo.get_one(user_id=db_user.id, team_id=team_id) is not None
     
     @staticmethod
     def get_members_of_team(db: Session, team_id: UUID):
         team_repo = TeamRepository(db)
         membership_repo = MemebershipRepository(db)
 
-        db_team = team_repo.get_by_team_id(team_id)
+        db_team = team_repo.get_one(team_id=team_id)
         if not db_team:
             raise HTTPException(status_code=404, detail="Team doesn't exist")
         
@@ -156,13 +156,13 @@ class TeamService:
     def change_user_team_role(team_id: UUID, user: ChangeUserTeamRole, db: Session):
         membership_repo = MemebershipRepository(db)
         user_repo = UserRepository(db)
-        db_team_membership = membership_repo.get_by_user_id_and_team_id(user.user_id, team_id)
+        db_team_membership = membership_repo.get_one(user_id=user.user_id, team_id=team_id)
     
         if not db_team_membership:
             raise HTTPException(status_code=404, detail="User is not in this team")
 
         db_team_membership = membership_repo.update_role(db_team_membership, user.role)
-        db_user = user_repo.get_by_user_id(db_team_membership.user_id)
+        db_user = user_repo.get_one(user_id=db_team_membership.user_id)
 
         redis = redis_manager.get_client()
         if redis is not None:
@@ -185,7 +185,7 @@ class TeamService:
     def remove_user_from_team(team_id: UUID, user_id: UUID, db: Session):
         membership_repo = MemebershipRepository(db)
         
-        db_team_membership = membership_repo.get_by_user_id_and_team_id(user_id, team_id)
+        db_team_membership = membership_repo.get_one(user_id=user_id, team_id=team_id)
 
         if not db_team_membership:
             raise HTTPException(status_code=404, detail="User is not in this team")
@@ -250,7 +250,7 @@ class TeamService:
         if cached_role is not None:
             role = TeamRole(cached_role)
         else:
-            membership = membership_repo.get_by_user_id_and_team_id(db_user.id, team_id)
+            membership = membership_repo.get_one(user_id=db_user.id, team_id=team_id)
             if membership is None:
                 raise HTTPException(status_code=403, detail="User is not in this team")
 
