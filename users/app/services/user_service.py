@@ -35,7 +35,7 @@ class UserService:
         else:
             user_id = cached_user_id
 
-        db_user = user_repo.get_by_user_id(UUID(str(user_id)))
+        db_user = user_repo.get_one(user_id=UUID(str(user_id)))
 
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -60,7 +60,7 @@ class UserService:
     def create_user(db: Session, user: UserRegister):
         user_repo = UserRepository(db)
 
-        db_user = user_repo.get_by_email(user.email)
+        db_user = user_repo.get_one(email=user.email)
         if db_user:
             raise HTTPException(status_code=409, detail="Email already used")
         
@@ -72,7 +72,7 @@ class UserService:
     def change_user_role(db: Session, role: SystemRole, user_id: UUID) -> User:
         user_repo = UserRepository(db)
 
-        db_user = user_repo.get_by_user_id(user_id)
+        db_user = user_repo.get_one(user_id=user_id)
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
 

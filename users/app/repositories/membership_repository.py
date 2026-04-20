@@ -1,8 +1,8 @@
 from uuid import UUID
 from sqlalchemy import case, select
 from sqlalchemy.orm import Session
-from app.core.enums import SystemRole, TeamRole
-from app.models.teams import Team, TeamMembership
+from app.core.enums import TeamRole
+from app.models.teams import TeamMembership
 from app.models.users import User
 
 
@@ -10,17 +10,24 @@ class MemebershipRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_user_id_and_team_id(self, user_id: UUID, team_id: UUID) -> TeamMembership:
-        stmt = (
-            select(TeamMembership)
-            .where(TeamMembership.user_id == user_id)
-            .where(TeamMembership.team_id == team_id)
-        )
+    def get_one(
+        self,
+        *,
+        user_id: UUID | None = None,
+        team_id: UUID | None = None,
+    ) -> TeamMembership:
+        stmt = select(TeamMembership)
+
+        if user_id is not None:
+            stmt = stmt.where(TeamMembership.user_id == user_id)
+        if team_id is not None:
+            stmt = stmt.where(TeamMembership.team_id == team_id)
+
+        if user_id is None and team_id is None:
+            raise ValueError("No user_id or team_id")
+
         return self.db.scalar(stmt)
     
-    def get_by_team_id(self, team_id: UUID):
-        stmt = select(Team).where(Team.id == team_id)
-        return self.db.scalar(stmt)
 
     def get_all_by_team_id(self, team_id: UUID):
         role_order = case(

@@ -18,7 +18,7 @@ class HistoryRepository:
             changed_at=changed_at
         )
         self.db.add(db_task_action)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_task_action)
         return db_task_action
     
@@ -31,23 +31,19 @@ class HistoryRepository:
             changed_at=changed_at
         )
         self.db.add(db_task_status)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_task_status)
         return db_task_status
 
     def delete_task_action(self, action_history: TaskHistory):
         self.db.delete(action_history)
-        self.db.commit()
     
         
     def delete_task_status_change(self, status_history: TaskStatusHistory):
         self.db.delete(status_history)
-        self.db.commit()
 
     def delete_task_actions_by_task_id(self, task_id: UUID):
         self.db.execute(delete(TaskHistory).where(TaskHistory.task_id == task_id))
-        self.db.commit()
 
     def delete_task_status_changes_by_task_id(self, task_id: UUID):
         self.db.execute(delete(TaskStatusHistory).where(TaskStatusHistory.task_id == task_id))
-        self.db.commit()

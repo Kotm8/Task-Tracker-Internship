@@ -91,16 +91,15 @@ class TaskRepository:
             deadline=task.deadline,
         )
         self.db.add(db_task)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_task)
         return db_task
 
     def update_status(self, task: Task, new_status: TaskStatus) -> Task:
         task.status = new_status
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(task)
         return task
 
     def delete_Task(self, task: Task):
         self.db.delete(task)
-        self.db.commit()

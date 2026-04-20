@@ -9,12 +9,21 @@ class UserRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_user_id(self, user_id: UUID):
-        stmt = select(User).where(User.id == user_id)
-        return self.db.scalar(stmt)
-    
-    def get_by_email(self, email: str):
-        stmt = select(User).where(User.email == email)
+    def get_one(
+        self,
+        *,
+        user_id: UUID | None = None,
+        email: str | None = None,
+    ):
+        stmt = select(User)
+
+        if user_id is not None:
+            stmt = stmt.where(User.id == user_id)
+        elif email is not None:
+            stmt = stmt.where(User.email == email)
+        else:
+            raise ValueError("No user_id or email")
+
         return self.db.scalar(stmt)
     
     def create(self, username: str, email: str, password: str)-> User:

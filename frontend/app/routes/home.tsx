@@ -172,10 +172,10 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "create-task") {
-    const teamId = formData.get("teamId")?.toString() ?? "";
+    const teamId = formData.get("team_id")?.toString() ?? "";
     const title = formData.get("title")?.toString().trim() ?? "";
     const description = formData.get("description")?.toString().trim() ?? "";
-    const assignedTo = formData.get("assignedTo")?.toString() ?? "";
+    const assignedTo = formData.get("assigned_to")?.toString() ?? "";
     const deadline = formData.get("deadline")?.toString() ?? "";
 
     if (!teamId || !title || !assignedTo || !deadline) {
@@ -284,8 +284,8 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "change-task-status") {
-    const teamId = formData.get("teamId")?.toString() ?? "";
-    const taskId = formData.get("taskId")?.toString() ?? "";
+    const teamId = formData.get("team_id")?.toString() ?? "";
+    const taskId = formData.get("task_id")?.toString() ?? "";
     const status = formData.get("status")?.toString() ?? "";
 
     if (!teamId || !taskId || !["todo", "in_progress", "review", "done", "cancelled"].includes(status)) {
@@ -330,8 +330,8 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "delete-task") {
-    const teamId = formData.get("teamId")?.toString() ?? "";
-    const taskId = formData.get("taskId")?.toString() ?? "";
+    const teamId = formData.get("team_id")?.toString() ?? "";
+    const taskId = formData.get("task_id")?.toString() ?? "";
 
     if (!teamId || !taskId) {
       return data(
@@ -435,7 +435,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     isViewingAllTeams,
     selectedTeam,
     selectedTeamMembers,
-    assignedTasks,
+    tasks,
     canViewSelectedTeamTasks,
     isViewingAllTasks,
     taskFilters,
@@ -723,7 +723,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
         <TasksPanel
           selectedTeam={selectedTeam}
-          assignedTasks={assignedTasks}
+          tasks={tasks}
           canViewSelectedTeamTasks={canViewSelectedTeamTasks}
           canCreateTask={selectedTeam?.role === "pm"}
           canDeleteTask={selectedTeam?.role === "pm"}

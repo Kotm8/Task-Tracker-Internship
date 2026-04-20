@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Form, Link } from "react-router";
 
 import type {
-  AssignedTask,
+  TaskResponse,
   TaskFilters,
   TeamMember,
   TeamSummary,
 } from "../../lib/dashboard.server";
 
-const nextStatusesByCurrentStatus: Record<AssignedTask["status"], AssignedTask["status"][]> = {
+const nextStatusesByCurrentStatus: Record<TaskResponse["status"], TaskResponse["status"][]> = {
   todo: ["in_progress", "cancelled"],
   in_progress: ["todo", "review", "cancelled"],
   review: ["in_progress", "done", "cancelled"],
@@ -16,7 +16,7 @@ const nextStatusesByCurrentStatus: Record<AssignedTask["status"], AssignedTask["
   cancelled: ["todo", "in_progress", "review"],
 };
 
-const statusPillClassNames: Record<AssignedTask["status"], string> = {
+const statusPillClassNames: Record<TaskResponse["status"], string> = {
   todo: "bg-red-100 text-red-700",
   in_progress: "bg-orange-100 text-orange-700",
   review: "bg-yellow-100 text-yellow-700",
@@ -24,7 +24,7 @@ const statusPillClassNames: Record<AssignedTask["status"], string> = {
   cancelled: "bg-red-100 text-red-700",
 };
 
-function formatStatusLabel(status: AssignedTask["status"]) {
+function formatStatusLabel(status: TaskResponse["status"]) {
   return status.replace("_", " ");
 }
 
@@ -89,7 +89,7 @@ function formatTimeLeft(deadline: string) {
 
 type TasksPanelProps = {
   selectedTeam: TeamSummary | null;
-  assignedTasks: AssignedTask[];
+  tasks: TaskResponse[];
   canViewSelectedTeamTasks: boolean;
   canCreateTask: boolean;
   canDeleteTask: boolean;
@@ -119,7 +119,7 @@ type TasksPanelProps = {
 
 export function TasksPanel({
   selectedTeam,
-  assignedTasks,
+  tasks,
   canViewSelectedTeamTasks,
   canCreateTask,
   canDeleteTask,
@@ -143,7 +143,7 @@ export function TasksPanel({
 }: TasksPanelProps) {
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTaskDismissed, setIsCreateTaskDismissed] = useState(false);
-  const [taskPendingDelete, setTaskPendingDelete] = useState<AssignedTask | null>(null);
+  const [taskPendingDelete, setTaskPendingDelete] = useState<TaskResponse | null>(null);
   const wasSubmittingCreateTaskRef = useRef(false);
   const wasSubmittingDeleteTaskRef = useRef(false);
 
@@ -181,12 +181,12 @@ export function TasksPanel({
       return;
     }
 
-    const failedTask = assignedTasks.find((task) => task.id === deleteTaskErrorTaskId);
+    const failedTask = tasks.find((task) => task.id === deleteTaskErrorTaskId);
 
     if (failedTask) {
       setTaskPendingDelete(failedTask);
     }
-  }, [assignedTasks, deleteTaskError, deleteTaskErrorTaskId]);
+  }, [tasks, deleteTaskError, deleteTaskErrorTaskId]);
 
   useEffect(() => {
     if (submittingDeleteTaskId) {
@@ -245,7 +245,7 @@ export function TasksPanel({
           ) : null}
           {selectedTeam && canViewSelectedTeamTasks ? (
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-              {assignedTasks.length} {isViewingAllTasks ? "total" : "assigned"}
+              {tasks.length} {isViewingAllTasks ? "total" : "assigned"}
             </span>
           ) : null}
         </div>
@@ -255,7 +255,7 @@ export function TasksPanel({
         isCreateTaskOpen ? (
           <Form method="post" className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
             <input type="hidden" name="intent" value="create-task" />
-            <input type="hidden" name="teamId" value={selectedTeam.id} />
+            <input type="hidden" name="team_id" value={selectedTeam.id} />
 
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -285,7 +285,7 @@ export function TasksPanel({
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-slate-700">Assign to</span>
                 <select
-                  name="assignedTo"
+                  name="assigned_to"
                   required
                   defaultValue={createTaskFormValues?.assignedTo ?? teamMembers[0]?.id ?? ""}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 outline-none focus:border-slate-500"
@@ -441,9 +441,9 @@ export function TasksPanel({
 
       {selectedTeam ? (
         canViewSelectedTeamTasks ? (
-          assignedTasks.length > 0 ? (
+          tasks.length > 0 ? (
             <div className="mt-4 space-y-3">
-              {assignedTasks.map((task) => (
+              {tasks.map((task) => (
                 <article
                   key={task.id}
                   className="rounded-lg border border-slate-200 bg-slate-50 p-4"
@@ -495,8 +495,8 @@ export function TasksPanel({
                       {nextStatusesByCurrentStatus[task.status].map((nextStatus) => (
                         <Form key={nextStatus} method="post">
                           <input type="hidden" name="intent" value="change-task-status" />
-                          <input type="hidden" name="teamId" value={task.team_id} />
-                          <input type="hidden" name="taskId" value={task.id} />
+                          <input type="hidden" name="team_id" value={task.team_id} />
+                          <input type="hidden" name="task_id" value={task.id} />
                           <input type="hidden" name="status" value={nextStatus} />
                           <button
                             type="submit"
@@ -555,8 +555,8 @@ export function TasksPanel({
 
             <Form method="post" className="mt-5 space-y-4">
               <input type="hidden" name="intent" value="delete-task" />
-              <input type="hidden" name="teamId" value={selectedTeam.id} />
-              <input type="hidden" name="taskId" value={taskPendingDelete.id} />
+              <input type="hidden" name="team_id" value={selectedTeam.id} />
+              <input type="hidden" name="task_id" value={taskPendingDelete.id} />
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 <p>

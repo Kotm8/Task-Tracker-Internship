@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, String, DateTime, Enum
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.enums import TaskActions, TaskStatus
@@ -12,7 +12,7 @@ class TaskStatusHistory(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=False)
+    task_id = Column(UUID(as_uuid=True), nullable=False)
 
     old_status = Column(Enum(TaskStatus, name="task_status_enum"), nullable=True)
     new_status = Column(Enum(TaskStatus, name="task_status_enum"), nullable=False)
@@ -27,7 +27,7 @@ class TaskHistory(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=False)
+    task_id = Column(UUID(as_uuid=True), nullable=False)
 
     action = Column(Enum(TaskActions, name="task_actions_enum"), nullable=False)
 

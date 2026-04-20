@@ -1,10 +1,8 @@
-from typing import Literal
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
-
-TaskStatusValue = Literal["todo", "in_progress", "review", "done", "cancelled"]
+from app.core.enums import TaskStatus
 
 
 class TaskCreate(BaseModel):
@@ -16,7 +14,7 @@ class TaskCreate(BaseModel):
 
 class TaskChangeStatus(BaseModel):
     task_id: UUID
-    status: TaskStatusValue
+    status: TaskStatus
 
 class TaskDelete(BaseModel):
     task_id: UUID
@@ -27,7 +25,7 @@ class TaskResponse(BaseModel):
     team_id: UUID
     title: str
     description: str | None
-    status: TaskStatusValue
+    status: TaskStatus
     created_by: UUID
     assigned_to: UUID
     deadline: datetime
