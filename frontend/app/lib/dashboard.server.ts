@@ -20,7 +20,7 @@ export type TeamMember = {
   role: TeamRole;
 };
 
-export type AssignedTask = {
+export type TaskResponse = {
   id: string;
   team_id: string;
   title: string;
@@ -38,14 +38,14 @@ export type TaskSortField = "deadline" | "created_at" | "updated_at";
 export type TaskSortDirection = "asc" | "desc";
 
 export type TaskFilters = {
-  status?: AssignedTask["status"];
+  status?: TaskResponse["status"];
   deadline?: TaskDeadlineFilter;
   sort?: TaskSortField;
   direction: TaskSortDirection;
 };
 
-type PaginatedTasks = {
-  items: AssignedTask[];
+type PaginatedTaskResponse = {
+  items: TaskResponse[];
   page: number;
   limit: number;
   total: number;
@@ -57,7 +57,7 @@ export type DashboardData = {
   isViewingAllTeams: boolean;
   selectedTeam: TeamSummary | null;
   selectedTeamMembers: TeamMember[];
-  assignedTasks: AssignedTask[];
+  tasks: TaskResponse[];
   canViewSelectedTeamTasks: boolean;
   isViewingAllTasks: boolean;
   taskFilters: TaskFilters;
@@ -93,7 +93,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
       isViewingAllTeams: false,
       selectedTeam: null,
       selectedTeamMembers: [],
-      assignedTasks: [],
+      tasks: [],
       canViewSelectedTeamTasks: false,
       isViewingAllTasks: false,
       taskFilters: { direction: "asc" },
@@ -132,7 +132,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
   const taskFilters: TaskFilters = {
     status:
       status && ["todo", "in_progress", "review", "done", "cancelled"].includes(status)
-        ? (status as AssignedTask["status"])
+        ? (status as TaskResponse["status"])
         : undefined,
     deadline:
       deadline && ["before", "after"].includes(deadline)
@@ -155,7 +155,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
       isViewingAllTeams,
       selectedTeam: null,
       selectedTeamMembers: [],
-      assignedTasks: [],
+      tasks: [],
       canViewSelectedTeamTasks: false,
       isViewingAllTasks: false,
       taskFilters,
@@ -173,7 +173,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
     selectedTeam.role !== null || !isViewingAllTeams;
   const isViewingAllTasks =
     selectedTeam.role === "pm" && currentUrl.searchParams.get("tasks") === "all";
-  let assignedTasks: AssignedTask[] = [];
+  let tasks: TaskResponse[] = [];
 
   if (canViewSelectedTeamTasks) {
     const taskQuery = new URLSearchParams({
@@ -194,7 +194,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
       taskQuery.set("sort", taskFilters.sort);
     }
 
-    const tasks = await readJson<PaginatedTasks>(
+    const paginatedTasks = await readJson<PaginatedTaskResponse>(
       context,
       isViewingAllTasks
         ? `/api/v1/tasks/${selectedTeam.id}?${taskQuery.toString()}`
@@ -203,7 +203,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
         ? "Failed to load team tasks."
         : "Failed to load assigned tasks.",
     );
-    assignedTasks = tasks.items;
+    tasks = paginatedTasks.items;
   }
 
   return {
@@ -212,7 +212,7 @@ export async function getDashboardData(request: Request): Promise<DashboardData>
     isViewingAllTeams,
     selectedTeam,
     selectedTeamMembers,
-    assignedTasks,
+    tasks,
     canViewSelectedTeamTasks,
     isViewingAllTasks,
     taskFilters,

@@ -135,14 +135,6 @@ class RoleRpcClient:
 
 
 class TaskRpcConsumer:
-    ACTION_PERMISSIONS = {
-        "create_task": TeamPermission.CREATE_TASK,
-        "get_my_tasks": TeamPermission.VIEW_USER_TASKS,
-        "get_all_tasks": TeamPermission.VIEW_ALL_TASKS,
-        "change_task_status": TeamPermission.CHANGE_TASK_STATUS,
-        "remove_task": TeamPermission.DELETE_TASK,
-    }
-
     def __init__(self) -> None:
         self._connection: AbstractRobustConnection | None = None
         self._channel: AbstractRobustChannel | None = None
@@ -199,7 +191,7 @@ class TaskRpcConsumer:
                 routing_key=message.reply_to,
             )
 
-    async def _get_current_user(self, team_id: UUID, permission: TeamPermission, access_token: str | None) -> dict:
+    async def _get_user_role(self, team_id: UUID, permission: TeamPermission, access_token: str | None) -> dict:
         if not access_token:
             raise HTTPException(status_code=401, detail="Not authenticated")
 
@@ -228,9 +220,11 @@ class TaskRpcConsumer:
         db = SessionLocal()
         try:
             payload = json.loads(body.decode())
+            
             action = payload.get("action")
-            permission = self.ACTION_PERMISSIONS.get(action)
-            if permission is None:
+            try:
+                permission = TeamPermission(action)
+            except ValueError:
                 return {
                     "error": {
                         "status_code": 400,
@@ -239,13 +233,13 @@ class TaskRpcConsumer:
                 }
 
             team_id = UUID(payload["team_id"])
-            current_user = await self._get_current_user(
+            current_user = await self._get_user_role(
                 team_id=team_id,
                 permission=permission,
                 access_token=payload.get("access_token"),
             )
 
-            if action == "create_task":
+            if permission == TeamPermission.CREATE_TASK:
                 task = TaskCreate.model_validate(payload["task"])
                 result = TaskService.create_task(
                     db=db,
@@ -254,7 +248,7 @@ class TaskRpcConsumer:
                     created_by=UUID(current_user["user_id"]),
                     idempotency_key=UUID(payload["idempotency_key"]),
                 )
-            elif action == "get_my_tasks":
+            elif permission == TeamPermission.VIEW_USER_TASKS:
                 filters = payload.get("filters", {})
                 result = TaskService.get_user_tasks(
                     db=db,
@@ -267,7 +261,7 @@ class TaskRpcConsumer:
                     limit=filters.get("limit", 10),
                     page=filters.get("page", 1),
                 )
-            elif action == "get_all_tasks":
+            elif permission == TeamPermission.VIEW_ALL_TASKS:
                 filters = payload.get("filters", {})
                 result = TaskService.get_all_team_tasks(
                     db=db,
@@ -279,7 +273,7 @@ class TaskRpcConsumer:
                     limit=filters.get("limit", 10),
                     page=filters.get("page", 1),
                 )
-            elif action == "change_task_status":
+            elif permission == TeamPermission.CHANGE_TASK_STATUS:
                 task = TaskChangeStatus.model_validate(payload["task"])
                 result = TaskService.change_task_status(
                     db=db,
@@ -298,14 +292,7 @@ class TaskRpcConsumer:
                 )
 
             return {"data": self._serialize_result(action, result)}
-        except KeyError:
-            return {
-                "error": {
-                    "status_code": 400,
-                    "detail": "Invalid payload",
-                }
-            }
-        except ValidationError:
+        except (KeyError, ValidationError):
             return {
                 "error": {
                     "status_code": 400,
@@ -339,7 +326,10 @@ class TaskRpcConsumer:
 
     @staticmethod
     def _serialize_result(action: str, result: object) -> dict:
-        if action in {"get_my_tasks", "get_all_tasks"}:
+        if action in {
+            TeamPermission.VIEW_USER_TASKS.value,
+            TeamPermission.VIEW_ALL_TASKS.value,
+        }:
             return PaginatedTaskResponse.model_validate(result).model_dump(mode="json")
 
         return TaskResponse.model_validate(result).model_dump(mode="json")

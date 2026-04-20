@@ -10,4 +10,6 @@ class TaskStatus(StrEnum):
 class TaskActions(StrEnum):
     CREATE = "create"
     CHANGED = "changed"
-    DELETED = "deleted"
+    DELETED = "deleted"  
+    GET = "get" 
+    

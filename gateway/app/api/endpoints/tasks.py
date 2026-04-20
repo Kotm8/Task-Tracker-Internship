@@ -5,7 +5,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 
 from app.core.rabbitmq import RABBITMQ_TASK_QUEUE, task_rpc_client
 from app.schemas.task import PaginatedTaskResponse, TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
-
+from app.core.enums import TeamPermission
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ async def create_task(
 ) -> TaskResponse:
     return await _call_todo_rpc(
         {
-            "action": "create_task",
+            "action": TeamPermission.CREATE_TASK,
             "team_id": str(team_id),
             "task": task.model_dump(mode="json"),
             "idempotency_key": str(idempotency_key),
@@ -86,7 +86,7 @@ async def get_my_tasks(
 ) -> PaginatedTaskResponse:
     return await _call_todo_rpc(
         {
-            "action": "get_my_tasks",
+            "action":  TeamPermission.VIEW_USER_TASKS,
             "team_id": str(team_id),
             "access_token": request.cookies.get("access_token"),
             "filters": {
@@ -131,7 +131,7 @@ async def get_all_tasks(
 ) -> PaginatedTaskResponse:
     return await _call_todo_rpc(
         {
-            "action": "get_all_tasks",
+            "action":  TeamPermission.VIEW_ALL_TASKS,
             "team_id": str(team_id),
             "access_token": request.cookies.get("access_token"),
             "filters": {
@@ -160,7 +160,7 @@ async def change_task_status(
 ) -> TaskResponse:
     return await _call_todo_rpc(
         {
-            "action": "change_task_status",
+            "action":  TeamPermission.CHANGE_TASK_STATUS,
             "team_id": str(team_id),
             "task": task.model_dump(mode="json"),
             "idempotency_key": str(idempotency_key),
@@ -178,7 +178,7 @@ async def change_task_status(
 async def remove_task(team_id: UUID, task: TaskDelete, request: Request) -> TaskResponse:
     return await _call_todo_rpc(
         {
-            "action": "remove_task",
+            "action":  TeamPermission.DELETE_TASK,
             "team_id": str(team_id),
             "task": task.model_dump(mode="json"),
             "access_token": request.cookies.get("access_token"),
