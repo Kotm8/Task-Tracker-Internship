@@ -6,7 +6,10 @@ from app.db.database import get_db
 from app.dependencies.auth import get_current_user_team_role, require_team_permission
 from app.schemas.task import PaginatedTaskResponse, TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
 from app.services.task_service import TaskService
+from app.services.audit_service import AuditService
 from app.core.permissions import TeamPermission
+from fastapi.responses import StreamingResponse
+
 
 router = APIRouter()
 
@@ -96,3 +99,5 @@ async def remove_task(
 ):
     
     return TaskService.remove_task(db, current_user.user_id, team_id, task.task_id)
+
+

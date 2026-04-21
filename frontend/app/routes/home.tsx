@@ -368,8 +368,7 @@ export async function action({ request }: Route.ActionArgs) {
       );
     }
 
-    const currentUrl = new URL(request.url);
-    throw redirect(`${currentUrl.pathname}${currentUrl.search}`);
+    return data({ deleteTaskSuccess: true });
   }
 
   if (intent === "create-team") {
@@ -465,12 +464,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const submittingTaskStatusId =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "change-task-status"
-      ? navigation.formData?.get("taskId")?.toString()
+      ? navigation.formData?.get("task_id")?.toString()
       : undefined;
   const submittingDeleteTaskId =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "delete-task"
-      ? navigation.formData?.get("taskId")?.toString()
+      ? navigation.formData?.get("task_id")?.toString()
       : undefined;
   const isAddUserDialogOpen = isAddUserOpen;
   const addUserTeamId =
@@ -727,6 +726,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           canViewSelectedTeamTasks={canViewSelectedTeamTasks}
           canCreateTask={selectedTeam?.role === "pm"}
           canDeleteTask={selectedTeam?.role === "pm"}
+          canExportAudit={selectedTeam?.role === "pm"}
           isViewingAllTasks={isViewingAllTasks}
           isViewingAllTeams={isViewingAllTeams}
           teamMembers={selectedTeamMembers}

@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 import httpx
+from starlette.background import BackgroundTask
 from app.core.config import USER_API_BASE, TODO_API_BASE
 
 async def proxy_request(request: Request, target_url: str) -> Response:
@@ -37,6 +38,58 @@ async def proxy_request(request: Request, target_url: str) -> Response:
         content=upstream_response.content,
         status_code=upstream_response.status_code,
         headers=response_headers,
+    )
+
+    for cookie in upstream_response.headers.get_list("set-cookie"):
+        response.headers.append("set-cookie", cookie)
+
+    return response
+
+
+async def _close_stream(upstream_response: httpx.Response, client: httpx.AsyncClient) -> None:
+    await upstream_response.aclose()
+    await client.aclose()
+
+
+async def proxy_stream_request(request: Request, target_url: str) -> StreamingResponse:
+    body = await request.body()
+    headers = {
+        key: value
+        for key, value in request.headers.items()
+        if key.lower() not in {"host", "content-length"}
+    }
+
+    client = httpx.AsyncClient()
+    try:
+        upstream_response = await client.send(
+            client.build_request(
+                method=request.method,
+                url=target_url,
+                content=body,
+                params=request.query_params,
+                headers=headers,
+                cookies=request.cookies,
+            ),
+            stream=True,
+        )
+    except httpx.RequestError as exc:
+        await client.aclose()
+        raise HTTPException(
+            status_code=503,
+            detail=f"Upstream service unavailable: {exc.request.url.host}",
+        )
+
+    response_headers = {}
+    for header_name in ("content-type", "content-disposition"):
+        header_value = upstream_response.headers.get(header_name)
+        if header_value:
+            response_headers[header_name] = header_value
+
+    response = StreamingResponse(
+        upstream_response.aiter_bytes(),
+        status_code=upstream_response.status_code,
+        headers=response_headers,
+        background=BackgroundTask(_close_stream, upstream_response, client),
     )
 
     for cookie in upstream_response.headers.get_list("set-cookie"):

@@ -282,7 +282,7 @@ class TaskRpcConsumer:
                     task=task,
                     idempotency_key=UUID(payload["idempotency_key"]),
                 )
-            else:
+            elif permission == TeamPermission.DELETE_TASK:
                 task = TaskDelete.model_validate(payload["task"])
                 result = TaskService.remove_task(
                     db=db,
@@ -290,6 +290,13 @@ class TaskRpcConsumer:
                     team_id=team_id,
                     task_id=task.task_id,
                 )
+            else:
+                return {
+                    "error": {
+                        "status_code": 400,
+                        "detail": "Unsupported action",
+                    }
+                }
 
             return {"data": self._serialize_result(action, result)}
         except (KeyError, ValidationError):

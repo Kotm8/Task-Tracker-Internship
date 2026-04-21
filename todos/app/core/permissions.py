@@ -7,4 +7,5 @@ class TeamPermission(StrEnum):
     VIEW_ALL_TASKS = "view_all_tasks"
     CHANGE_TASK_STATUS = "change_task_status"
     DELETE_TASK = "delete_task"
+    GENERATE_REPORT = "generate_report"
 

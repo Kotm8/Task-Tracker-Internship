@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
+from uuid import UUID
 from app.core.task_events import TaskEventEnvelope
 from app.models.integration_events import AuditEventLog, NotificationEventLog, ProcessedEvent
 
@@ -51,3 +51,11 @@ class IntegrationEventRepository:
         self.db.flush()
         self.db.refresh(log_entry)
         return log_entry
+
+    def get_audit_log(self, team_id: UUID) -> list[AuditEventLog]:
+        stmt = (
+            select(AuditEventLog)
+            .where(AuditEventLog.payload["team_id"].as_string() == str(team_id))
+            .order_by(AuditEventLog.created_at.asc())
+        )
+        return list(self.db.scalars(stmt).all())
