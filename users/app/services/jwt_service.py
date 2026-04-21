@@ -1,22 +1,23 @@
-import os
 from uuid import UUID, uuid4
 from fastapi import HTTPException
 import jwt
 from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
 from sqlalchemy.orm import Session
+from app.core.config import (
+    ACCESS_SECRET_KEY,
+    ALGORITHM,
+    REFRESH_SECRET_KEY,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_MINUTES,
+)
 from app.models.tokens import AccessToken, RefreshToken
 from app.models.users import User
 from app.core.redis_client import redis_manager
 from app.repositories.jwt_repository import JWTRepository
 from redis.exceptions import RedisError
 
-load_dotenv()
-ACCESS_SECRET_KEY = os.getenv("ACCESS_SECRET_KEY")
-REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")))
-REFRESH_TOKEN_EXPIRE_MINUTES = timedelta(minutes=int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES")))
+ACCESS_TOKEN_EXPIRE_MINUTES = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+REFRESH_TOKEN_EXPIRE_MINUTES = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
 
 class JWTService:
     @staticmethod

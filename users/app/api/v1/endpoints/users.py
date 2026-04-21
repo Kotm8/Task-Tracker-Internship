@@ -8,7 +8,7 @@ from app.schemas.notification import (
     TaskNotificationRequest,
     TaskNotificationResponse,
 )
-from app.schemas.user import UserRegister, UserResponse, UserRoleChange
+from app.schemas.user import UserResponse, UserRoleChange
 from app.services.notification_service import NotificationService
 from app.services.user_service import UserService
 router = APIRouter()

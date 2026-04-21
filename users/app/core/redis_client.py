@@ -1,13 +1,12 @@
 import logging
-import os
 from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
 from redis import Redis
 from redis.exceptions import RedisError
 from redis.backoff import NoBackoff
 from redis.retry import Retry
 
-load_dotenv()
+from app.core.config import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
+
 logger = logging.getLogger(__name__)
 
 REDIS_RETRY_AFTER = timedelta(seconds=30)
@@ -20,9 +19,9 @@ class RedisManager:
 
     def _build_client(self) -> Redis:
         return Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            password=os.getenv("REDIS_PASSWORD"),
+            host=REDIS_HOST,
+            port=REDIS_PORT,
+            password=REDIS_PASSWORD,
             decode_responses=True,
             socket_connect_timeout=0.2,
             socket_timeout=0.2,
