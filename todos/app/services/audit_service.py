@@ -64,7 +64,7 @@ class AuditService:
                 continue
             error_counts[(error_date, metric_name)] += 1
 
-        writer.writerow(["date", "metric_name", "metric_value", "errors_count", "notes"])
+        writer.writerow(["date", "team_id", "metric_name", "metric_value", "errors_count", "notes"])
         yield buffer.getvalue()
         buffer.seek(0)
         buffer.truncate(0)
@@ -75,6 +75,7 @@ class AuditService:
             writer.writerow(
                 [
                     event_date,
+                    str(team_id),
                     metric_name,
                     aggregated_metrics.get((event_date, metric_name), 0),
                     error_counts.get((event_date, metric_name), 0),
