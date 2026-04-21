@@ -52,6 +52,20 @@ class IntegrationEventRepository:
         self.db.refresh(log_entry)
         return log_entry
 
+    def get_notification_log_by_event_id(self, event_id: UUID) -> NotificationEventLog | None:
+        stmt = select(NotificationEventLog).where(NotificationEventLog.event_id == event_id)
+        return self.db.scalar(stmt)
+
+    def update_notification_log_status(
+        self,
+        log_entry: NotificationEventLog,
+        status: str,
+    ) -> NotificationEventLog:
+        log_entry.status = status
+        self.db.flush()
+        self.db.refresh(log_entry)
+        return log_entry
+
     def get_audit_log(self, team_id: UUID) -> list[AuditEventLog]:
         stmt = (
             select(AuditEventLog)

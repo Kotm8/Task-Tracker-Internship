@@ -9,13 +9,14 @@ from app.core.event_bus import (
 )
 from app.core.task_events import TaskEventEnvelope
 from app.repositories.integration_event_repository import IntegrationEventRepository
+from app.services.notification_service import NotificationService
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
 
 def handle_event(repo: IntegrationEventRepository, event: TaskEventEnvelope) -> None:
-    repo.create_notification_log(event)
+    NotificationService.handle_event(repo, event)
 
 
 async def main() -> None:
