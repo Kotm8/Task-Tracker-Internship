@@ -15,6 +15,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 
 def handle_event(repo: IntegrationEventRepository, event: TaskEventEnvelope) -> None:
+    if event.payload.get("title", "").startswith("FAIL_AUDIT"): #test for audit
+        raise RuntimeError("Intentional audit test failure")
     repo.create_audit_log(event)
 
 

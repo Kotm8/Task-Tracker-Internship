@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from typing import Callable
+from uuid import UUID
 
 import aio_pika
 from aio_pika import DeliveryMode, ExchangeType, IncomingMessage, Message
@@ -169,6 +170,7 @@ class TaskEventConsumerWorker:
             await self.close()
 
     async def _on_message(self, message: IncomingMessage) -> None:
+        event: TaskEventEnvelope | None = None
         try:
             event = parse_event(message)
             with SessionLocal() as db:
@@ -183,8 +185,33 @@ class TaskEventConsumerWorker:
 
             await message.ack()
         except Exception as exc:
+            self._store_processing_error(event, exc)
             logger.exception("%s failed to process task event", self.consumer_name)
             await self._route_failed_message(message, exc)
+
+    def _store_processing_error(self, event: TaskEventEnvelope | None, exc: Exception) -> None:
+        try:
+            team_id: UUID | None = None
+            if event is not None and event.payload.get("team_id"):
+                try:
+                    team_id = UUID(str(event.payload["team_id"]))
+                except (ValueError, TypeError):
+                    team_id = None
+
+            with SessionLocal() as db:
+                repo = IntegrationEventRepository(db)
+                repo.create_processing_error_log(
+                    consumer_name=self.consumer_name,
+                    event_id=event.event_id if event is not None else None,
+                    event_type=event.event_type if event is not None else None,
+                    team_id=team_id,
+                    payload=event.payload if event is not None else None,
+                    error_type=type(exc).__name__,
+                    error_text=str(exc)[:1000],
+                )
+                db.commit()
+        except Exception:
+            logger.exception("%s failed to persist processing error log", self.consumer_name)
 
     async def _route_failed_message(self, message: IncomingMessage, exc: Exception) -> None:
         if self._channel is None:

@@ -17,7 +17,7 @@ from app.models.tasks import Task
 from app.models.idempotency_keys import IdempotencyKey
 from app.models.histories import TaskHistory, TaskStatusHistory
 from app.models.outbox import OutboxEvent
-from app.models.integration_events import AuditEventLog, NotificationEventLog, ProcessedEvent
+from app.models.integration_events import AuditEventLog, NotificationEventLog, ProcessedEvent, ProcessingErrorLog
 
 target_metadata = Base.metadata
 
