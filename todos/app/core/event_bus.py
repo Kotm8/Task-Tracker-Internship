@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from typing import Callable
 from uuid import UUID
 
@@ -11,35 +10,26 @@ import aio_pika
 from aio_pika import DeliveryMode, ExchangeType, IncomingMessage, Message
 from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection, AbstractRobustExchange, AbstractRobustQueue
 
+from app.core.config import (
+    RABBITMQ_CONNECT_DELAY_SECONDS,
+    RABBITMQ_CONNECT_RETRIES,
+    RABBITMQ_URL,
+    TASK_EVENTS_AUDIT_DLQ_QUEUE,
+    TASK_EVENTS_AUDIT_QUEUE,
+    TASK_EVENTS_AUDIT_RETRY_QUEUE,
+    TASK_EVENTS_EXCHANGE,
+    TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE,
+    TASK_EVENTS_NOTIFICATIONS_QUEUE,
+    TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE,
+    TASK_EVENT_MAX_RETRIES,
+    TASK_EVENT_RETRY_DELAY_MS,
+)
 from app.core.task_events import TaskEventEnvelope
 from app.db.database import SessionLocal
 from app.repositories.integration_event_repository import IntegrationEventRepository
 
 
 logger = logging.getLogger(__name__)
-
-RABBITMQ_URL = os.getenv("RABBITMQ_URL")
-RABBITMQ_CONNECT_RETRIES = int(os.getenv("RABBITMQ_CONNECT_RETRIES", "20"))
-RABBITMQ_CONNECT_DELAY_SECONDS = float(os.getenv("RABBITMQ_CONNECT_DELAY_SECONDS", "2"))
-
-TASK_EVENTS_EXCHANGE = os.getenv("TASK_EVENTS_EXCHANGE", "tasks.events")
-TASK_EVENTS_AUDIT_QUEUE = os.getenv("TASK_EVENTS_AUDIT_QUEUE", "tasks.events.audit")
-TASK_EVENTS_AUDIT_RETRY_QUEUE = os.getenv("TASK_EVENTS_AUDIT_RETRY_QUEUE", "tasks.events.audit.retry")
-TASK_EVENTS_AUDIT_DLQ_QUEUE = os.getenv("TASK_EVENTS_AUDIT_DLQ_QUEUE", "tasks.events.audit.dlq")
-TASK_EVENTS_NOTIFICATIONS_QUEUE = os.getenv("TASK_EVENTS_NOTIFICATIONS_QUEUE", "tasks.events.notifications")
-TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE = os.getenv(
-    "TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE",
-    "tasks.events.notifications.retry",
-)
-TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE = os.getenv(
-    "TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE",
-    "tasks.events.notifications.dlq",
-)
-
-TASK_EVENT_PUBLISH_BATCH_SIZE = int(os.getenv("TASK_EVENT_PUBLISH_BATCH_SIZE", "50"))
-TASK_EVENT_PUBLISH_INTERVAL_SECONDS = float(os.getenv("TASK_EVENT_PUBLISH_INTERVAL_SECONDS", "2"))
-TASK_EVENT_RETRY_DELAY_MS = int(os.getenv("TASK_EVENT_RETRY_DELAY_MS", "5000"))
-TASK_EVENT_MAX_RETRIES = int(os.getenv("TASK_EVENT_MAX_RETRIES", "3"))
 
 
 async def connect_rabbitmq() -> AbstractRobustConnection:

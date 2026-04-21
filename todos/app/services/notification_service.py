@@ -1,11 +1,8 @@
-import os
-
 import httpx
 
-from app.core.task_events import TaskEventEnvelope, TaskEventType
+from app.core.config import USER_SERVICE_URL
+from app.core.task_events import TaskEventEnvelope
 from app.repositories.integration_event_repository import IntegrationEventRepository
-
-USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
 
 
 class NotificationService:

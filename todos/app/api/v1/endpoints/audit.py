@@ -1,13 +1,11 @@
 from typing import Literal
 
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.db.database import get_db
-from app.dependencies.auth import get_current_user_team_role, require_team_permission
-from app.schemas.task import PaginatedTaskResponse, TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
-from app.services.task_service import TaskService
+from app.dependencies.auth import require_team_permission
 from app.services.audit_service import AuditService
 from app.core.permissions import TeamPermission
 from fastapi.responses import StreamingResponse

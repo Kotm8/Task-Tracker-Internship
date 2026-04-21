@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import os
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
@@ -11,6 +10,13 @@ from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection, Abstra
 from fastapi import HTTPException
 from pydantic import ValidationError
 
+from app.core.config import (
+    RABBITMQ_CONNECT_DELAY_SECONDS,
+    RABBITMQ_CONNECT_RETRIES,
+    RABBITMQ_ROLE_QUEUE,
+    RABBITMQ_TASK_QUEUE,
+    RABBITMQ_URL,
+)
 from app.core.permissions import TeamPermission
 from app.db.database import SessionLocal
 from app.schemas.task import (
@@ -21,14 +27,6 @@ from app.schemas.task import (
     TaskResponse,
 )
 from app.services.task_service import TaskService
-
-
-RABBITMQ_ROLE_QUEUE = os.getenv("RABBITMQ_ROLE_QUEUE", "role_queue")
-RABBITMQ_TASK_QUEUE = os.getenv("RABBITMQ_TASK_QUEUE", "task_queue")
-
-RABBITMQ_URL = (os.getenv("RABBITMQ_URL") or "").strip()
-RABBITMQ_CONNECT_RETRIES = int(os.getenv("RABBITMQ_CONNECT_RETRIES", "20"))
-RABBITMQ_CONNECT_DELAY_SECONDS = float(os.getenv("RABBITMQ_CONNECT_DELAY_SECONDS", "2"))
 
 logger = logging.getLogger(__name__)
 

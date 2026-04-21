@@ -1,9 +1,11 @@
 import asyncio
 import logging
 
-from app.core.event_bus import (
+from app.core.config import (
     TASK_EVENT_PUBLISH_BATCH_SIZE,
     TASK_EVENT_PUBLISH_INTERVAL_SECONDS,
+)
+from app.core.event_bus import (
     build_event_message,
     connect_rabbitmq,
     declare_task_event_topology,

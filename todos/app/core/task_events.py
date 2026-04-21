@@ -9,7 +9,6 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from app.models.tasks import Task
-from app.core.enums import TaskStatus
 
 
 EVENT_VERSION = 1
