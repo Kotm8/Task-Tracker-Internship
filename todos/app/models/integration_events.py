@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, JSON, String, UniqueConstraint, func
+from sqlalchemy import Column, DateTime, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.database import Base
@@ -40,3 +40,17 @@ class NotificationEventLog(Base):
     payload = Column(JSON, nullable=False)
     status = Column(String, nullable=False, default="queued")
     created_at = Column(DateTime, server_default=func.now())
+
+
+class ProcessingErrorLog(Base):
+    __tablename__ = "processing_error_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    consumer_name = Column(String, nullable=False)
+    event_id = Column(UUID(as_uuid=True), nullable=True)
+    event_type = Column(String, nullable=True)
+    team_id = Column(UUID(as_uuid=True), nullable=True)
+    payload = Column(JSON, nullable=True)
+    error_type = Column(String, nullable=False)
+    error_text = Column(Text, nullable=False)
+    failed_at = Column(DateTime, server_default=func.now())

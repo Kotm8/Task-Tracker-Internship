@@ -3,42 +3,33 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from typing import Callable
+from uuid import UUID
 
 import aio_pika
 from aio_pika import DeliveryMode, ExchangeType, IncomingMessage, Message
 from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection, AbstractRobustExchange, AbstractRobustQueue
 
+from app.core.config import (
+    RABBITMQ_CONNECT_DELAY_SECONDS,
+    RABBITMQ_CONNECT_RETRIES,
+    RABBITMQ_URL,
+    TASK_EVENTS_AUDIT_DLQ_QUEUE,
+    TASK_EVENTS_AUDIT_QUEUE,
+    TASK_EVENTS_AUDIT_RETRY_QUEUE,
+    TASK_EVENTS_EXCHANGE,
+    TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE,
+    TASK_EVENTS_NOTIFICATIONS_QUEUE,
+    TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE,
+    TASK_EVENT_MAX_RETRIES,
+    TASK_EVENT_RETRY_DELAY_MS,
+)
 from app.core.task_events import TaskEventEnvelope
 from app.db.database import SessionLocal
 from app.repositories.integration_event_repository import IntegrationEventRepository
 
 
 logger = logging.getLogger(__name__)
-
-RABBITMQ_URL = os.getenv("RABBITMQ_URL")
-RABBITMQ_CONNECT_RETRIES = int(os.getenv("RABBITMQ_CONNECT_RETRIES", "20"))
-RABBITMQ_CONNECT_DELAY_SECONDS = float(os.getenv("RABBITMQ_CONNECT_DELAY_SECONDS", "2"))
-
-TASK_EVENTS_EXCHANGE = os.getenv("TASK_EVENTS_EXCHANGE", "tasks.events")
-TASK_EVENTS_AUDIT_QUEUE = os.getenv("TASK_EVENTS_AUDIT_QUEUE", "tasks.events.audit")
-TASK_EVENTS_AUDIT_RETRY_QUEUE = os.getenv("TASK_EVENTS_AUDIT_RETRY_QUEUE", "tasks.events.audit.retry")
-TASK_EVENTS_AUDIT_DLQ_QUEUE = os.getenv("TASK_EVENTS_AUDIT_DLQ_QUEUE", "tasks.events.audit.dlq")
-TASK_EVENTS_NOTIFICATIONS_QUEUE = os.getenv("TASK_EVENTS_NOTIFICATIONS_QUEUE", "tasks.events.notifications")
-TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE = os.getenv(
-    "TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE",
-    "tasks.events.notifications.retry",
-)
-TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE = os.getenv(
-    "TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE",
-    "tasks.events.notifications.dlq",
-)
-
-TASK_EVENT_PUBLISH_BATCH_SIZE = int(os.getenv("TASK_EVENT_PUBLISH_BATCH_SIZE", "50"))
-TASK_EVENT_PUBLISH_INTERVAL_SECONDS = float(os.getenv("TASK_EVENT_PUBLISH_INTERVAL_SECONDS", "2"))
-TASK_EVENT_RETRY_DELAY_MS = int(os.getenv("TASK_EVENT_RETRY_DELAY_MS", "5000"))
-TASK_EVENT_MAX_RETRIES = int(os.getenv("TASK_EVENT_MAX_RETRIES", "3"))
 
 
 async def connect_rabbitmq() -> AbstractRobustConnection:
@@ -169,6 +160,7 @@ class TaskEventConsumerWorker:
             await self.close()
 
     async def _on_message(self, message: IncomingMessage) -> None:
+        event: TaskEventEnvelope | None = None
         try:
             event = parse_event(message)
             with SessionLocal() as db:
@@ -183,8 +175,33 @@ class TaskEventConsumerWorker:
 
             await message.ack()
         except Exception as exc:
+            self._store_processing_error(event, exc)
             logger.exception("%s failed to process task event", self.consumer_name)
             await self._route_failed_message(message, exc)
+
+    def _store_processing_error(self, event: TaskEventEnvelope | None, exc: Exception) -> None:
+        try:
+            team_id: UUID | None = None
+            if event is not None and event.payload.get("team_id"):
+                try:
+                    team_id = UUID(str(event.payload["team_id"]))
+                except (ValueError, TypeError):
+                    team_id = None
+
+            with SessionLocal() as db:
+                repo = IntegrationEventRepository(db)
+                repo.create_processing_error_log(
+                    consumer_name=self.consumer_name,
+                    event_id=event.event_id if event is not None else None,
+                    event_type=event.event_type if event is not None else None,
+                    team_id=team_id,
+                    payload=event.payload if event is not None else None,
+                    error_type=type(exc).__name__,
+                    error_text=str(exc)[:1000],
+                )
+                db.commit()
+        except Exception:
+            logger.exception("%s failed to persist processing error log", self.consumer_name)
 
     async def _route_failed_message(self, message: IncomingMessage, exc: Exception) -> None:
         if self._channel is None:

@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.db.database import get_db
-from app.dependencies.auth import get_current_user_team_role, require_team_permission
+from app.dependencies.auth import require_team_permission
 from app.schemas.task import PaginatedTaskResponse, TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
 from app.services.task_service import TaskService
 from app.core.permissions import TeamPermission
+
 
 router = APIRouter()
 
@@ -96,3 +97,5 @@ async def remove_task(
 ):
     
     return TaskService.remove_task(db, current_user.user_id, team_id, task.task_id)
+
+

@@ -1,0 +1,34 @@
+import os
+
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+ACCESS_SECRET_KEY = os.getenv("ACCESS_SECRET_KEY")
+REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_MINUTES = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", "10080"))
+ALGORITHM = "HS256"
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+
+RABBITMQ_URL = (os.getenv("RABBITMQ_URL") or "").strip()
+RABBITMQ_ROLE_QUEUE = os.getenv("RABBITMQ_ROLE_QUEUE", "role_queue")
+TASK_EVENTS_NOTIFICATIONS_QUEUE = os.getenv("TASK_EVENTS_NOTIFICATIONS_QUEUE", "tasks.events.notifications")
+TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE = os.getenv(
+    "TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE",
+    "tasks.events.notifications.retry",
+)
+TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE = os.getenv(
+    "TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE",
+    "tasks.events.notifications.dlq",
+)
+TASK_EVENT_MAX_RETRIES = int(os.getenv("TASK_EVENT_MAX_RETRIES", "3"))
+RABBITMQ_CONNECT_RETRIES = int(os.getenv("RABBITMQ_CONNECT_RETRIES", "20"))
+RABBITMQ_CONNECT_DELAY_SECONDS = float(os.getenv("RABBITMQ_CONNECT_DELAY_SECONDS", "2"))

@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from app.db.database import get_db
-from app.models.users import User
-from app.schemas.user import UserRegister, UserResponse, UserRoleChange
+from app.schemas.user import UserResponse, UserRoleChange
 from app.services.user_service import UserService
 router = APIRouter()
 
@@ -26,4 +25,5 @@ def change_user_role(
         raise HTTPException(status_code=401, detail="Not authenticated")
     if UserService.is_user_admin(db, access_token):
         return UserService.change_user_role(db, role.role, user_id)
+
 

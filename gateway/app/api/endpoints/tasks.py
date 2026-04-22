@@ -2,7 +2,9 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi.responses import Response
 
+from app.core.proxy import TODO_API_BASE, proxy_stream_request
 from app.core.rabbitmq import RABBITMQ_TASK_QUEUE, task_rpc_client
 from app.schemas.task import PaginatedTaskResponse, TaskChangeStatus, TaskCreate, TaskDelete, TaskResponse
 from app.core.enums import TeamPermission
@@ -143,6 +145,22 @@ async def get_all_tasks(
                 "page": page,
             },
         }
+    )
+
+
+@router.get(
+    "/{team_id}/audit.csv",
+    summary="Download team audit CSV",
+    description="Exports audit events for the team as either a raw or aggregated CSV file.",
+)
+async def export_team_audit(
+    team_id: UUID,
+    request: Request,
+    mode: Literal["raw", "aggregated"] = Query("aggregated"),
+) -> Response:
+    return await proxy_stream_request(
+        request,
+        f"{TODO_API_BASE}/api/v1/audit/{team_id}/audit.csv",
     )
 
 

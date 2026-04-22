@@ -1,5 +1,4 @@
 import json
-import os
 import asyncio
 from uuid import UUID
 
@@ -8,15 +7,15 @@ from aio_pika import IncomingMessage, Message
 from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection, AbstractQueue
 from fastapi import HTTPException
 
+from app.core.config import (
+    RABBITMQ_CONNECT_DELAY_SECONDS,
+    RABBITMQ_CONNECT_RETRIES,
+    RABBITMQ_ROLE_QUEUE,
+    RABBITMQ_URL,
+)
 from app.core.permissions import TeamPermission
 from app.db.database import SessionLocal
 from app.services.team_service import TeamService
-
-
-RABBITMQ_URL = (os.getenv("RABBITMQ_URL") or "").strip()
-RABBITMQ_ROLE_QUEUE = os.getenv("RABBITMQ_ROLE_QUEUE", "role_queue")
-RABBITMQ_CONNECT_RETRIES = int(os.getenv("RABBITMQ_CONNECT_RETRIES", "20"))
-RABBITMQ_CONNECT_DELAY_SECONDS = float(os.getenv("RABBITMQ_CONNECT_DELAY_SECONDS", "2"))
 
 
 async def connect_rabbitmq() -> AbstractRobustConnection:

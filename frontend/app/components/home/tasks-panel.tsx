@@ -93,6 +93,7 @@ type TasksPanelProps = {
   canViewSelectedTeamTasks: boolean;
   canCreateTask: boolean;
   canDeleteTask: boolean;
+  canExportAudit: boolean;
   isViewingAllTasks: boolean;
   isViewingAllTeams: boolean;
   teamMembers: TeamMember[];
@@ -123,6 +124,7 @@ export function TasksPanel({
   canViewSelectedTeamTasks,
   canCreateTask,
   canDeleteTask,
+  canExportAudit,
   isViewingAllTasks,
   isViewingAllTeams,
   teamMembers,
@@ -144,6 +146,7 @@ export function TasksPanel({
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTaskDismissed, setIsCreateTaskDismissed] = useState(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<TaskResponse | null>(null);
+  const [isAuditExportConfirmOpen, setIsAuditExportConfirmOpen] = useState(false);
   const wasSubmittingCreateTaskRef = useRef(false);
   const wasSubmittingDeleteTaskRef = useRef(false);
 
@@ -158,6 +161,7 @@ export function TasksPanel({
     setIsCreateTaskOpen(false);
     setIsCreateTaskDismissed(false);
     setTaskPendingDelete(null);
+    setIsAuditExportConfirmOpen(false);
   }, [selectedTeam?.id]);
 
   useEffect(() => {
@@ -242,6 +246,15 @@ export function TasksPanel({
             >
               {isViewingAllTasks ? "All tasks" : "Your tasks"}
             </Link>
+          ) : null}
+          {selectedTeam && canExportAudit ? (
+            <button
+              type="button"
+              onClick={() => setIsAuditExportConfirmOpen(true)}
+              className="shrink-0 whitespace-nowrap rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:bg-slate-100"
+            >
+              Export audit
+            </button>
           ) : null}
           {selectedTeam && canViewSelectedTeamTasks ? (
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -590,6 +603,52 @@ export function TasksPanel({
                 </button>
               </div>
             </Form>
+          </div>
+        </div>
+      ) : null}
+
+      {isAuditExportConfirmOpen && selectedTeam ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Export audit log</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Download a CSV report for <span className="font-medium text-slate-700">{selectedTeam.name}</span>?
+                </p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                PM only
+              </span>
+            </div>
+
+            <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              Choose how you want to export the audit data for this team.
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsAuditExportConfirmOpen(false)}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <a
+                href={`/api/v1/tasks/${selectedTeam.id}/audit.csv?mode=raw`}
+                onClick={() => setIsAuditExportConfirmOpen(false)}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                Raw events CSV
+              </a>
+              <a
+                href={`/api/v1/tasks/${selectedTeam.id}/audit.csv?mode=aggregated`}
+                onClick={() => setIsAuditExportConfirmOpen(false)}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Aggregated CSV
+              </a>
+            </div>
           </div>
         </div>
       ) : null}
