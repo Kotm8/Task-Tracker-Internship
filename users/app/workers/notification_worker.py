@@ -5,7 +5,7 @@ from aio_pika import DeliveryMode, IncomingMessage, Message
 from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection, AbstractQueue
 from pydantic import ValidationError
 
-from app.core.config import TASK_EVENTS_NOTIFICATIONS_QUEUE, TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE, TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE, TASK_EVENT_MAX_RETRIES
+from app.core import config
 from app.core.rabbitmq import connect_rabbitmq
 from app.db.database import SessionLocal
 from app.services.notification_service import NotificationService
@@ -40,7 +40,7 @@ class NotificationWorker:
         await self._channel.set_qos(prefetch_count=10)
 
         self._queue = await self._channel.declare_queue(
-            TASK_EVENTS_NOTIFICATIONS_QUEUE,
+            config.TASK_EVENTS_NOTIFICATIONS_QUEUE,
             durable=True,
         )
         self._consumer_tag = await self._queue.consume(self._on_message)
@@ -122,9 +122,9 @@ class NotificationWorker:
         headers["x-last-error"] = str(exc)[:500]
     
         target_queue = (
-            TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE
-            if retry_count < TASK_EVENT_MAX_RETRIES
-            else TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE
+            config.TASK_EVENTS_NOTIFICATIONS_RETRY_QUEUE
+            if retry_count < config.TASK_EVENT_MAX_RETRIES
+            else config.TASK_EVENTS_NOTIFICATIONS_DLQ_QUEUE
         )
     
         await self._channel.default_exchange.publish(
