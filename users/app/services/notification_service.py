@@ -5,10 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.user_repository import UserRepository
 from app.repositories.team_repository import TeamRepository
-from app.schemas.notification import (
-    TaskNotificationRequest,
-    TaskNotificationResponse,
-)
+from app.schemas.notification import TaskNotificationRequest
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +16,7 @@ class NotificationService:
     def send_task_email(
         db: Session,
         notification: TaskNotificationRequest,
-    ) -> TaskNotificationResponse:
+    ) -> None:
         user_repo = UserRepository(db)
         db_user = user_repo.get_one(user_id=notification.user_id)
         team_repo = TeamRepository(db)
@@ -31,11 +28,6 @@ class NotificationService:
 
         message = NotificationService._build_mock_message(notification, db_user.email, db_team.name)
         print(message)
-
-        return TaskNotificationResponse(
-            status="sent",
-            recipient_email=db_user.email,
-        )
     
     def _build_mock_message(notification: TaskNotificationRequest, email: str, team_name: str) -> str:
         if notification.event_type == "task.created":

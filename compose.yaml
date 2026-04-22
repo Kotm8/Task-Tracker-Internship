@@ -91,6 +91,18 @@ services:
       retries: 10
       start_period: 10s
 
+  user_notification_worker:
+    build: ./users
+    container_name: todo_user_notification_worker
+    command: ["python", "-m", "app.workers.notification_worker"]
+    env_file:
+      - ./users/.env
+    depends_on:
+      user_api:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+        
   user_db:
     image: postgres:18
     container_name: todo_user_db
@@ -153,17 +165,6 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  notification_worker:
-    build: ./todos
-    container_name: todo_notification_worker
-    command: ["python", "-m", "app.workers.notification_worker"]
-    env_file:
-      - ./todos/.env
-    depends_on:
-      todo_api:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
 
   todo_db:
     image: postgres:18

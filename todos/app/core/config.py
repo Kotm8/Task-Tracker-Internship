@@ -7,7 +7,6 @@ load_dotenv()
 
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
 
 RABBITMQ_ROLE_QUEUE = os.getenv("RABBITMQ_ROLE_QUEUE", "role_queue")
 RABBITMQ_TASK_QUEUE = os.getenv("RABBITMQ_TASK_QUEUE", "task_queue")
